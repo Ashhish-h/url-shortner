@@ -14,7 +14,7 @@ import java.util.List;
 @NoArgsConstructor
 public class AnalyticsResponse {
     private String url;
-    private Integer totalClicks;
+    private Long totalClicks;
     private Long rank;
     private List<ClickDetails> recentClicks;
 }

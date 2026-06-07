@@ -4,12 +4,10 @@ import com.url_shortner.url_shortner.cache.RedisCacheService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -90,16 +88,16 @@ public class RedisCahceServiceImpl implements RedisCacheService {
     }
 
     @Override
-    public Integer getClickCount(String shortCode) {
+    public Long getClickCount(String shortCode) {
         if(StringUtils.hasText(shortCode)){
             try{
                 String value = redisTemplate.opsForValue().get(CLICKS_KEY + shortCode);
-                return value == null ? 0 : Integer.parseInt(value);
+                return value == null ? 0L : Long.parseLong(value);
             } catch (Exception e){
                 log.error("Failed to get click count for key : {} with exception : {}", shortCode, e.getMessage());
             }
         }
-        return 0;
+        return 0L;
     }
 
     @Override
@@ -111,6 +109,19 @@ public class RedisCahceServiceImpl implements RedisCacheService {
                 log.error("Failed to update top urls for key : {} with exception : {}", shortCode, e.getMessage());
             }
         }
+    }
+
+    @Override
+    public Long getReverseRank(String shortCode) {
+        if(StringUtils.hasText(shortCode)){
+            try{
+                Long rank = redisTemplate.opsForZSet().reverseRank(ANALYTICS_KEY, shortCode);
+                return rank == null ? -1L : rank + 1; // since redis is zero based and -1 represent now rank.
+            } catch (Exception e){
+                log.error("Failed to get reverse rank for key : {} with exception : {}", shortCode, e.getMessage());
+            }
+        }
+        return -1L;
     }
 
     @Override

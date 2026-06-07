@@ -12,9 +12,11 @@ public interface RedisCacheService {
 
     void incrementClickCount(String shortCode);
 
-    Integer getClickCount(String shortCode);
+    Long getClickCount(String shortCode);
 
     void updateTopUrls(String shortCode);
+
+    Long getReverseRank(String shortCode);
 
     Boolean checkAndConsumeToken(String ip);
 
