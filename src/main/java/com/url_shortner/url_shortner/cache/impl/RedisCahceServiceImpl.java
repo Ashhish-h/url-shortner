@@ -132,7 +132,7 @@ public class RedisCahceServiceImpl implements RedisCacheService {
             if(!StringUtils.hasText(key)){
                 redisTemplate.opsForValue().set(RATE_LIMIT_KEY + ip, String.valueOf(redisLimitMaxTokens - 1), redisRateLimitTtl, TimeUnit.SECONDS);
                 return true;
-                }
+            }
 
             int limit = Integer.parseInt(key);
 

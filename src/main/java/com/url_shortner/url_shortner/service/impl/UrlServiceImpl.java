@@ -14,6 +14,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import java.time.LocalDateTime;
 
 @Service
@@ -32,6 +34,7 @@ public class UrlServiceImpl implements UrlService {
     private final ApplicationEventPublisher applicationEventPublisher;
 
     @Override
+    @Transactional
     public UrlResponse createShortUrl(UrlRequest urlRequest) {
         URL url = URL.builder()
                 .originalUrl(urlRequest.getOriginalUrl())
@@ -79,6 +82,7 @@ public class UrlServiceImpl implements UrlService {
     }
 
     @Override
+    @Transactional
     public void deactivateUrl(String shortCode) {
         URL url = urlRepository.findByShortCode(shortCode)
                         .orElseThrow(() -> new UrlNotFoundException("Url not found with shortCode " +  shortCode));
