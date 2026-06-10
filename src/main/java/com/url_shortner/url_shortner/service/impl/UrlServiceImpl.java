@@ -38,6 +38,7 @@ public class UrlServiceImpl implements UrlService {
     public UrlResponse createShortUrl(UrlRequest urlRequest) {
         URL url = URL.builder()
                 .originalUrl(urlRequest.getOriginalUrl())
+                .shortCode(urlRequest.getOriginalUrl())
                 .expiresAt(urlRequest.getExpiresAt() != null ? urlRequest.getExpiresAt() : LocalDateTime.now().plusDays(defaultExpiryTime))
                 .isActive(Boolean.TRUE)
                 .build();

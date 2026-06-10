@@ -576,10 +576,6 @@
                 <h3>What this page does</h3>
                 <p>Creates short URLs, shows a success reveal animation, stores recent links locally, and pulls analytics from your backend.</p>
             </div>
-            <div class="card mini-panel fade-in">
-                <h3>Backend endpoints used</h3>
-                <p><code>/url/api/v1/urls</code>, <code>/url/api/v1/urls/{shortcode}</code>, and your analytics endpoint.</p>
-            </div>
         </div>
     </section>
 
@@ -683,8 +679,8 @@
         <div class="card panel fade-in">
             <div class="section-title">
                 <div>
-                    <h2>Recent links</h2>
-                    <small>Stored locally for instant access. The backend still owns the real data.</small>
+                    <h2>Recent clicks</h2>
+                    <small>IP, referrer, and user agent from your analytics response.</small>
                 </div>
                 <button class="btn secondary" id="btnClearRecent" type="button">Clear local history</button>
             </div>
@@ -705,6 +701,24 @@
                     </tbody>
                 </table>
             </div>
+
+            <div style="height:18px"></div>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>IP</th>
+                        <th>Referrer</th>
+                        <th>User Agent</th>
+                    </tr>
+                    </thead>
+                    <tbody id="clickDetailsTable">
+                    <tr><td colspan="4" style="color:var(--muted);">Load analytics to see click details.</td></tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
     </section>
 </div>
@@ -713,12 +727,6 @@
 
 <script>
     const API_BASE = '/url/api/v1';
-    const ANALYTICS_ENDPOINTS = [
-        (code) => `${API_BASE}/analytics/${encodeURIComponent(code)}`,
-        (code) => `${API_BASE}/urls/${encodeURIComponent(code)}/analytics`,
-        (code) => `${API_BASE}/url/${encodeURIComponent(code)}/analytics`,
-        (code) => `${API_BASE}/analytics?shortcode=${encodeURIComponent(code)}`
-    ];
 
     const elements = {
         shortenForm: document.getElementById('shortenForm'),
@@ -740,6 +748,7 @@
         metricRecent: document.getElementById('metricRecent'),
         metricActive: document.getElementById('metricActive'),
         recentTable: document.getElementById('recentTable'),
+        clickDetailsTable: document.getElementById('clickDetailsTable'),
         toast: document.getElementById('toast'),
         statShortened: document.getElementById('statShortened'),
         statCopied: document.getElementById('statCopied'),
@@ -756,7 +765,8 @@
         charts: {
             clicks: null,
             traffic: null,
-        }
+        },
+        latestAnalytics: null,
     };
 
     function toast(message, type = 'info') {
@@ -785,7 +795,7 @@
     }
 
     function buildShortUrl(shortCode) {
-        return `${getBaseOrigin()}${API_BASE.replace('/api/v1', '')}/${shortCode}`;
+        return `${getBaseOrigin()}${API_BASE}/urls/${shortCode}`;
     }
 
     function getRecentLinks() {
@@ -848,6 +858,42 @@
         });
     }
 
+    function maskIp(ip) {
+        if (!ip) return '-';
+        const value = String(ip).trim();
+        if (!value) return '-';
+        if (value.includes(':')) {
+            const parts = value.split(':');
+            return parts.slice(0, 2).join(':') + '::';
+        }
+        const parts = value.split('.');
+        if (parts.length !== 4) return value;
+        return `${parts[0]}.${parts[1]}.${parts[2]}.xxx`;
+    }
+
+    function summarizeUserAgent(ua) {
+        if (!ua) return 'Unknown';
+        const value = String(ua);
+        const browser = /Edg\//.test(value) ? 'Edge'
+            : /Chrome\//.test(value) && !/Edg\//.test(value) ? 'Chrome'
+                : /Firefox\//.test(value) ? 'Firefox'
+                    : /Safari\//.test(value) && !/Chrome\//.test(value) ? 'Safari'
+                        : /MSIE|Trident/.test(value) ? 'IE'
+                            : 'Other';
+        const device = /Android|iPhone|iPad|Mobile/.test(value) ? 'Mobile' : 'Desktop';
+        return `${browser} • ${device}`;
+    }
+
+    function referrerLabel(referrer) {
+        if (!referrer) return 'Direct';
+        try {
+            const url = new URL(referrer);
+            return url.hostname || referrer;
+        } catch {
+            return referrer;
+        }
+    }
+
     async function copyText(text) {
         try {
             await navigator.clipboard.writeText(text);
@@ -898,34 +944,25 @@
         elements.statLookup.textContent = state.lookupCount;
         toast('Loading analytics...', 'info');
 
-        let payload = null;
-        let lastError = null;
-
-        for (const buildUrl of ANALYTICS_ENDPOINTS) {
-            try {
-                const response = await fetch(buildUrl(shortCode));
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                payload = await response.json();
-                break;
-            } catch (err) {
-                lastError = err;
+        try {
+            const response = await fetch(`${API_BASE}/analytics/${encodeURIComponent(shortCode)}`);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
             }
-        }
-
-        if (!payload) {
+            const payload = await response.json();
+            state.latestAnalytics = payload;
+            renderAnalytics(payload);
+            toast('Analytics loaded', 'success');
+        } catch (err) {
+            console.error('Analytics load failed:', err);
             toast('Analytics endpoint not reachable yet', 'error');
-            console.error('Analytics load failed:', lastError);
-            return;
         }
-
-        renderAnalytics(payload);
-        toast('Analytics loaded', 'success');
     }
 
     function renderAnalytics(data) {
         const totalClicks = data.totalClicks ?? data.clickCount ?? 0;
         const rank = data.rank ?? data.urlRank ?? '-';
-        const recentClicks = data.recentClicks ?? [];
+        const recentClicks = Array.isArray(data.recentClicks) ? data.recentClicks : [];
 
         elements.metricClicks.textContent = totalClicks;
         elements.metricRank.textContent = rank ?? '-';
@@ -992,6 +1029,8 @@
                 }
             }
         });
+
+        renderClickDetails(recentClicks);
     }
 
     function computeTrafficBreakdown(recentClicks) {
@@ -1052,6 +1091,22 @@
         }
     }
 
+    function renderClickDetails(recentClicks) {
+        if (!recentClicks || !recentClicks.length) {
+            elements.clickDetailsTable.innerHTML = '<tr><td colspan="4" style="color:var(--muted);">No click activity available yet.</td></tr>';
+            return;
+        }
+
+        elements.clickDetailsTable.innerHTML = recentClicks.slice().reverse().map((click) => `
+        <tr>
+          <td>${click.clickedAt ? new Date(click.clickedAt).toLocaleString() : '-'}</td>
+          <td>${maskIp(click.ip)}</td>
+          <td>${referrerLabel(click.referrer)}</td>
+          <td style="word-break:break-word; max-width:420px;">${summarizeUserAgent(click.userAgent)}</td>
+        </tr>
+      `).join('');
+    }
+
     function resetDashboard() {
         elements.metricClicks.textContent = '-';
         elements.metricRank.textContent = '-';
@@ -1074,6 +1129,7 @@
                 plugins: { legend: { position: 'bottom', labels: { color: '#dbe5f5' } } }
             }
         });
+        elements.clickDetailsTable.innerHTML = '<tr><td colspan="4" style="color:var(--muted);">Load analytics to see click details.</td></tr>';
     }
 
     async function handleShortenSubmit(event) {
@@ -1088,7 +1144,7 @@
         setLoading(elements.btnShorten, true);
         try {
             const payload = await shortenUrl(valid);
-            const shortUrl = payload.shortUrl || buildShortUrl(payload.shortCode);
+            const shortUrl = payload.shortUrl || buildShortUrl(payload.shortCode || shortCodeFromShortUrl(payload.shortUrl));
             const shortCode = payload.shortCode || shortCodeFromShortUrl(shortUrl);
 
             state.latestCode = shortCode;

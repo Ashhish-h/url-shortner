@@ -33,7 +33,7 @@ public class UrlController {
                 .body(urlService.createShortUrl(urlRequest));
     }
 
-    @GetMapping(value = "/urls/{shortcode}")
+    @GetMapping(value = "/url/{shortcode}")
     public ResponseEntity<String> getOriginalUrl(@PathVariable String shortcode, HttpServletRequest request) {
         String ipAddress = request.getHeader("X-Forwarded-For");
         if(ipAddress == null) ipAddress = request.getRemoteAddr();
