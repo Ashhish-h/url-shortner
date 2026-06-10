@@ -29,7 +29,8 @@ public class UrlController {
 
     @PostMapping(value = "/urls")
     public ResponseEntity<UrlResponse> createShortUrl(@Valid @RequestBody UrlRequest urlRequest) {
-        return ResponseEntity.ok(urlService.createShortUrl(urlRequest));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(urlService.createShortUrl(urlRequest));
     }
 
     @GetMapping(value = "/urls/{shortcode}")

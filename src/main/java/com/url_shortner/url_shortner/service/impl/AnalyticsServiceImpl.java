@@ -49,7 +49,7 @@ public class AnalyticsServiceImpl implements AnalyticsService {
     public AnalyticsResponse getAnalytics(String shortCode) {
         Long clickCount = redisCacheService.getClickCount(shortCode);
         if(clickCount == 0){
-            clickCount = urlClickRepository.coundByShortCode(shortCode);
+            clickCount = urlClickRepository.countByShortCode(shortCode);
         }
 
         Long urlRank = redisCacheService.getReverseRank(shortCode);

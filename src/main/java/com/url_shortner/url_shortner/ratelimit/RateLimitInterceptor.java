@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 @Component
@@ -16,8 +17,8 @@ public class RateLimitInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
-        String ipAddr = request.getRemoteAddr();
-        Boolean isAllowed =  redisCacheService.checkAndConsumeToken(ipAddr);
+        String clientIp = resolveClientIp(request);
+        Boolean isAllowed =  redisCacheService.checkAndConsumeToken(clientIp);
         if(!isAllowed){
             response.setStatus(429);
             response.setContentType("application/json");
@@ -27,4 +28,17 @@ public class RateLimitInterceptor implements HandlerInterceptor {
         return true;
     }
 
+    private String resolveClientIp(HttpServletRequest request) {
+        String xForwardedFor = request.getHeader("X-Forwarded-For");
+        if (StringUtils.hasText(xForwardedFor)) {
+            return xForwardedFor.split(",")[0].trim();
+        }
+
+        String xRealIp = request.getHeader("X-Real-IP");
+        if (StringUtils.hasText(xRealIp)) {
+            return xRealIp.trim();
+        }
+
+        return request.getRemoteAddr();
+    }
 }

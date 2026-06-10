@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LinkForge URL Shortener</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --bg: #0b1020;
+            --bg-soft: #11172a;
+            --card: rgba(17, 23, 42, 0.86);
+            --card-border: rgba(148, 163, 184, 0.16);
+            --text: #e5eefc;
+            --muted: #97a3b6;
+            --accent: #7c3aed;
+            --accent-2: #22c55e;
+            --warn: #f59e0b;
+            --danger: #ef4444;
+            --shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
+            --radius: 22px;
+            --radius-sm: 14px;
+        }
+
+        * { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            margin: 0;
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            color: var(--text);
+            background:
+                    radial-gradient(circle at top left, rgba(124, 58, 237, 0.22), transparent 28%),
+                    radial-gradient(circle at 85% 10%, rgba(34, 197, 94, 0.12), transparent 24%),
+                    linear-gradient(180deg, #09101f 0%, #0b1020 100%);
+            min-height: 100vh;
+        }
+
+        .wrap {
+            width: min(1180px, calc(100% - 32px));
+            margin: 0 auto;
+            padding: 24px 0 40px;
+        }
+
+        .nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 22px;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 800;
+            letter-spacing: 0.3px;
+            font-size: 1.05rem;
+        }
+
+        .brand-badge {
+            width: 42px;
+            height: 42px;
+            border-radius: 14px;
+            display: grid;
+            place-items: center;
+            background: linear-gradient(135deg, var(--accent), #4f46e5);
+            box-shadow: 0 12px 30px rgba(124, 58, 237, 0.35);
+            font-size: 1.2rem;
+        }
+
+        .nav-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 14px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--card-border);
+            color: var(--muted);
+            font-size: 0.92rem;
+        }
+
+        .hero {
+            display: grid;
+            grid-template-columns: 1.2fr 0.8fr;
+            gap: 18px;
+            align-items: stretch;
+            margin-top: 6px;
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--card-border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(16px);
+        }
+
+        .hero-copy {
+            padding: 30px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .hero-copy::after {
+            content: "";
+            position: absolute;
+            inset: auto -20% -40% auto;
+            width: 260px;
+            height: 260px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(124,58,237,.22), transparent 70%);
+            pointer-events: none;
+        }
+
+        .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #c4b5fd;
+            font-size: 0.88rem;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(124, 58, 237, 0.12);
+            border: 1px solid rgba(124, 58, 237, 0.25);
+        }
+
+        h1 {
+            margin: 14px 0 10px;
+            font-size: clamp(2rem, 5vw, 3.8rem);
+            line-height: 0.98;
+            letter-spacing: -0.03em;
+        }
+
+        .lede {
+            color: var(--muted);
+            font-size: 1.03rem;
+            line-height: 1.75;
+            max-width: 62ch;
+            margin: 0;
+        }
+
+        .stat-row {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+            margin-top: 24px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .stat {
+            padding: 16px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .stat strong {
+            display: block;
+            font-size: 1.45rem;
+            margin-bottom: 6px;
+        }
+
+        .stat span {
+            color: var(--muted);
+            font-size: 0.92rem;
+        }
+
+        .hero-side {
+            display: grid;
+            gap: 18px;
+        }
+
+        .mini-panel {
+            padding: 22px;
+        }
+
+        .mini-panel h3,
+        .panel h2,
+        .panel h3 {
+            margin: 0 0 10px;
+        }
+
+        .mini-panel p,
+        .panel p {
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.7;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1.1fr 0.9fr;
+            gap: 18px;
+            margin-top: 18px;
+        }
+
+        .panel {
+            padding: 24px;
+        }
+
+        .field {
+            display: grid;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        label {
+            font-weight: 600;
+            color: #d7e0ef;
+            font-size: 0.95rem;
+        }
+
+        input, select, textarea, button {
+            font: inherit;
+        }
+
+        .input-wrap {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(148, 163, 184, 0.16);
+            border-radius: 18px;
+            transition: 180ms ease;
+        }
+
+        .input-wrap:focus-within {
+            border-color: rgba(124, 58, 237, 0.5);
+            box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.12);
+            transform: translateY(-1px);
+        }
+
+        .input-wrap input {
+            flex: 1;
+            min-width: 0;
+            background: transparent;
+            border: 0;
+            color: var(--text);
+            padding: 14px 12px;
+            outline: none;
+        }
+
+        .input-wrap input::placeholder {
+            color: #7c8aa3;
+        }
+
+        .btn {
+            border: 0;
+            cursor: pointer;
+            border-radius: 14px;
+            padding: 14px 18px;
+            font-weight: 700;
+            color: white;
+            background: linear-gradient(135deg, var(--accent), #4f46e5);
+            box-shadow: 0 14px 30px rgba(124, 58, 237, 0.28);
+            transition: transform 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
+            white-space: nowrap;
+        }
+
+        .btn:hover { transform: translateY(-1px); }
+        .btn:active { transform: translateY(0); }
+        .btn[disabled] {
+            opacity: 0.65;
+            cursor: wait;
+            transform: none;
+        }
+
+        .btn.secondary {
+            background: rgba(255, 255, 255, 0.07);
+            box-shadow: none;
+            border: 1px solid rgba(148, 163, 184, 0.16);
+            color: var(--text);
+        }
+
+        .helper-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 12px;
+            border-radius: 999px;
+            border: 1px solid rgba(148, 163, 184, 0.16);
+            background: rgba(255, 255, 255, 0.04);
+            color: #d7e0ef;
+            cursor: pointer;
+            transition: 150ms ease;
+            user-select: none;
+        }
+
+        .chip:hover { transform: translateY(-1px); }
+
+        .result {
+            margin-top: 18px;
+            display: none;
+            animation: popIn 420ms cubic-bezier(.2,.8,.2,1);
+        }
+
+        .result.show { display: block; }
+
+        .result-card {
+            position: relative;
+            overflow: hidden;
+            padding: 18px;
+            border-radius: 18px;
+            background: linear-gradient(135deg, rgba(124,58,237,0.18), rgba(34,197,94,0.10));
+            border: 1px solid rgba(124,58,237,0.24);
+        }
+
+        .result-card::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+            transform: translateX(-100%);
+            animation: shimmer 2.2s infinite;
+            pointer-events: none;
+        }
+
+        .result-top {
+            display: flex;
+            justify-content: space-between;
+            gap: 14px;
+            align-items: start;
+            flex-wrap: wrap;
+            position: relative;
+            z-index: 1;
+        }
+
+        .result-url {
+            font-size: 1.12rem;
+            font-weight: 800;
+            word-break: break-all;
+            margin-top: 4px;
+        }
+
+        .result-meta {
+            color: var(--muted);
+            font-size: 0.92rem;
+            margin-top: 8px;
+        }
+
+        .copy-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .copy-box {
+            flex: 1;
+            min-width: 220px;
+            padding: 13px 14px;
+            border-radius: 14px;
+            background: rgba(5, 8, 16, 0.35);
+            border: 1px solid rgba(148, 163, 184, 0.15);
+            word-break: break-all;
+        }
+
+        .section-title {
+            display: flex;
+            align-items: end;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .section-title small { color: var(--muted); }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .select {
+            padding: 13px 14px;
+            border-radius: 14px;
+            background: rgba(255,255,255,0.04);
+            color: var(--text);
+            border: 1px solid rgba(148, 163, 184, 0.16);
+            outline: none;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 18px;
+            margin-top: 18px;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .metric {
+            padding: 18px;
+            border-radius: 18px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(148,163,184,0.14);
+        }
+
+        .metric span { color: var(--muted); font-size: .9rem; }
+        .metric strong { display: block; font-size: 1.55rem; margin-top: 8px; }
+
+        .charts {
+            display: grid;
+            grid-template-columns: 1.15fr 0.85fr;
+            gap: 18px;
+        }
+
+        .chart-box { padding: 20px; min-height: 360px; }
+        canvas { width: 100% !important; height: 290px !important; }
+
+        .table-wrap {
+            overflow: auto;
+            border-radius: 18px;
+            border: 1px solid rgba(148,163,184,0.14);
+            background: rgba(255,255,255,0.03);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 720px;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 14px 16px;
+            border-bottom: 1px solid rgba(148,163,184,0.12);
+            vertical-align: top;
+            font-size: .94rem;
+        }
+
+        th { color: #d7e0ef; font-weight: 700; background: rgba(255,255,255,0.03); }
+        td { color: #d8e1ef; }
+        td small { color: var(--muted); display: block; margin-top: 5px; }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 7px 10px;
+            border-radius: 999px;
+            font-size: .83rem;
+            font-weight: 700;
+            background: rgba(34,197,94,0.12);
+            color: #86efac;
+            border: 1px solid rgba(34,197,94,0.22);
+        }
+
+        .badge.off {
+            background: rgba(239,68,68,0.1);
+            color: #fca5a5;
+            border-color: rgba(239,68,68,0.22);
+        }
+
+        .toast {
+            position: fixed;
+            right: 18px;
+            bottom: 18px;
+            padding: 14px 16px;
+            border-radius: 14px;
+            background: rgba(17,23,42,0.94);
+            border: 1px solid rgba(148,163,184,0.16);
+            box-shadow: var(--shadow);
+            color: var(--text);
+            transform: translateY(20px);
+            opacity: 0;
+            pointer-events: none;
+            transition: 220ms ease;
+            z-index: 50;
+            max-width: min(460px, calc(100vw - 32px));
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .fade-in { animation: fadeUp 420ms ease both; }
+        .pulse { animation: pulse 2.6s infinite; }
+
+        @keyframes popIn {
+            from { opacity: 0; transform: translateY(14px) scale(.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(124,58,237,0.0); }
+            50% { box-shadow: 0 0 0 8px rgba(124,58,237,0.06); }
+        }
+
+        @media (max-width: 980px) {
+            .hero, .grid, .charts { grid-template-columns: 1fr; }
+            .cards, .stat-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+
+        @media (max-width: 640px) {
+            .wrap { width: min(100% - 20px, 1180px); padding-top: 16px; }
+            .hero-copy, .panel, .mini-panel { padding: 18px; }
+            .cards, .stat-row { grid-template-columns: 1fr; }
+            .nav { flex-direction: column; align-items: start; }
+            .input-wrap { flex-direction: column; align-items: stretch; }
+            .btn { width: 100%; }
+            .controls { width: 100%; }
+            .controls .btn, .controls .select { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <header class="nav fade-in">
+        <div class="brand">
+            <div class="brand-badge">⛓</div>
+            <div>
+                <div>LinkForge</div>
+                <div style="color:var(--muted); font-size:.88rem; font-weight:600;">Fast URL shortener dashboard</div>
+            </div>
+        </div>
+        <div class="nav-pill">Spring Boot • Redis • PostgreSQL • Animated UI</div>
+    </header>
+
+    <section class="hero">
+        <div class="card hero-copy fade-in">
+            <div class="eyebrow">⚡ Lightweight frontend • real-time feel • no nonsense SPA bloating</div>
+            <h1>Shorten links with a UI that actually feels alive.</h1>
+            <p class="lede">
+                Enter a long URL, generate a short link, copy it instantly, and inspect analytics with charts.
+                The UI is built to stay light enough for a small VM while still looking properly modern.
+            </p>
+
+            <div class="stat-row">
+                <div class="stat">
+                    <strong id="statShortened">0</strong>
+                    <span>Links created this session</span>
+                </div>
+                <div class="stat">
+                    <strong id="statCopied">0</strong>
+                    <span>Copies to clipboard</span>
+                </div>
+                <div class="stat">
+                    <strong id="statLookup">0</strong>
+                    <span>Analytics lookups</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="hero-side">
+            <div class="card mini-panel fade-in">
+                <h3>What this page does</h3>
+                <p>Creates short URLs, shows a success reveal animation, stores recent links locally, and pulls analytics from your backend.</p>
+            </div>
+            <div class="card mini-panel fade-in">
+                <h3>Backend endpoints used</h3>
+                <p><code>/url/api/v1/urls</code>, <code>/url/api/v1/urls/{shortcode}</code>, and your analytics endpoint.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="grid">
+        <div class="card panel fade-in">
+            <div class="section-title">
+                <div>
+                    <h2>Generate a short URL</h2>
+                    <small>Paste a long link, smash the button, and let the backend do the boring part.</small>
+                </div>
+                <div class="controls">
+                    <button class="btn secondary" id="btnDemoFill" type="button">Fill demo URL</button>
+                </div>
+            </div>
+
+            <form id="shortenForm" autocomplete="off">
+                <div class="field">
+                    <label for="longUrl">Long URL</label>
+                    <div class="input-wrap">
+                        <input id="longUrl" name="longUrl" type="url" placeholder="https://example.com/some/very/long/link" required />
+                        <button class="btn pulse" id="btnShorten" type="submit">Shorten URL</button>
+                    </div>
+                </div>
+                <div class="helper-row">
+                    <div class="chip" data-fill="https://www.youtube.com/watch?v=dQw4w9WgXcQ">YouTube</div>
+                    <div class="chip" data-fill="https://news.ycombinator.com/">HN</div>
+                    <div class="chip" data-fill="https://spring.io/projects/spring-boot">Spring Boot</div>
+                    <div class="chip" data-fill="https://developer.mozilla.org/en-US/">MDN</div>
+                </div>
+            </form>
+
+            <div class="result" id="resultBox">
+                <div class="result-card">
+                    <div class="result-top">
+                        <div>
+                            <div style="color:#c4b5fd;font-weight:700;">Created successfully</div>
+                            <div class="result-url" id="resultShortUrl">-</div>
+                            <div class="result-meta" id="resultMeta">-</div>
+                        </div>
+                        <span class="badge" id="resultStatus">Active</span>
+                    </div>
+                    <div class="copy-row">
+                        <div class="copy-box" id="shortLinkBox">-</div>
+                        <button class="btn" type="button" id="copyBtn">Copy link</button>
+                        <button class="btn secondary" type="button" id="openBtn">Open</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card panel fade-in">
+            <div class="section-title">
+                <div>
+                    <h2>Analytics explorer</h2>
+                    <small>Type a short code and the dashboard will fetch its stats.</small>
+                </div>
+            </div>
+
+            <div class="field" style="margin-top:0;">
+                <label for="shortCode">Short code</label>
+                <div class="input-wrap">
+                    <input id="shortCode" placeholder="e.g. aB93kZ" />
+                    <button class="btn" id="btnAnalytics" type="button">Load analytics</button>
+                </div>
+            </div>
+
+            <div class="helper-row">
+                <div class="chip" id="btnUseLatest">Use latest created code</div>
+                <div class="chip" id="btnResetAnalytics">Reset charts</div>
+            </div>
+
+            <div class="cards" style="margin-top:16px;">
+                <div class="metric"><span>Total clicks</span><strong id="metricClicks">-</strong></div>
+                <div class="metric"><span>Rank</span><strong id="metricRank">-</strong></div>
+                <div class="metric"><span>Recent clicks</span><strong id="metricRecent">-</strong></div>
+                <div class="metric"><span>Active status</span><strong id="metricActive">-</strong></div>
+            </div>
+        </div>
+    </section>
+
+    <section class="dashboard">
+        <div class="card panel fade-in">
+            <div class="section-title">
+                <div>
+                    <h2>Charts</h2>
+                    <small>Simple, fast, and enough to look like the project had a budget.</small>
+                </div>
+            </div>
+            <div class="charts">
+                <div class="card chart-box">
+                    <h3 style="margin-bottom:8px;">Clicks over time</h3>
+                    <canvas id="clicksChart"></canvas>
+                </div>
+                <div class="card chart-box">
+                    <h3 style="margin-bottom:8px;">Traffic breakdown</h3>
+                    <canvas id="trafficChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="card panel fade-in">
+            <div class="section-title">
+                <div>
+                    <h2>Recent links</h2>
+                    <small>Stored locally for instant access. The backend still owns the real data.</small>
+                </div>
+                <button class="btn secondary" id="btnClearRecent" type="button">Clear local history</button>
+            </div>
+
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                    <tr>
+                        <th>Short URL</th>
+                        <th>Original URL</th>
+                        <th>Created</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                    </thead>
+                    <tbody id="recentTable">
+                    <tr><td colspan="5" style="color:var(--muted);">No links created yet.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+    const API_BASE = '/url/api/v1';
+    const ANALYTICS_ENDPOINTS = [
+        (code) => `${API_BASE}/analytics/${encodeURIComponent(code)}`,
+        (code) => `${API_BASE}/urls/${encodeURIComponent(code)}/analytics`,
+        (code) => `${API_BASE}/url/${encodeURIComponent(code)}/analytics`,
+        (code) => `${API_BASE}/analytics?shortcode=${encodeURIComponent(code)}`
+    ];
+
+    const elements = {
+        shortenForm: document.getElementById('shortenForm'),
+        longUrl: document.getElementById('longUrl'),
+        btnShorten: document.getElementById('btnShorten'),
+        btnDemoFill: document.getElementById('btnDemoFill'),
+        resultBox: document.getElementById('resultBox'),
+        resultShortUrl: document.getElementById('resultShortUrl'),
+        resultMeta: document.getElementById('resultMeta'),
+        shortLinkBox: document.getElementById('shortLinkBox'),
+        copyBtn: document.getElementById('copyBtn'),
+        openBtn: document.getElementById('openBtn'),
+        shortCode: document.getElementById('shortCode'),
+        btnAnalytics: document.getElementById('btnAnalytics'),
+        btnUseLatest: document.getElementById('btnUseLatest'),
+        btnResetAnalytics: document.getElementById('btnResetAnalytics'),
+        metricClicks: document.getElementById('metricClicks'),
+        metricRank: document.getElementById('metricRank'),
+        metricRecent: document.getElementById('metricRecent'),
+        metricActive: document.getElementById('metricActive'),
+        recentTable: document.getElementById('recentTable'),
+        toast: document.getElementById('toast'),
+        statShortened: document.getElementById('statShortened'),
+        statCopied: document.getElementById('statCopied'),
+        statLookup: document.getElementById('statLookup'),
+        btnClearRecent: document.getElementById('btnClearRecent'),
+    };
+
+    const state = {
+        latestCode: null,
+        latestShortUrl: null,
+        createdCount: 0,
+        copyCount: 0,
+        lookupCount: 0,
+        charts: {
+            clicks: null,
+            traffic: null,
+        }
+    };
+
+    function toast(message, type = 'info') {
+        elements.toast.textContent = message;
+        elements.toast.style.borderColor = type === 'error'
+            ? 'rgba(239,68,68,0.32)'
+            : type === 'success'
+                ? 'rgba(34,197,94,0.28)'
+                : 'rgba(148,163,184,0.16)';
+        elements.toast.classList.add('show');
+        clearTimeout(elements.toast._t);
+        elements.toast._t = setTimeout(() => elements.toast.classList.remove('show'), 2400);
+    }
+
+    function safeUrl(u) {
+        try {
+            const parsed = new URL(u);
+            return parsed.toString();
+        } catch {
+            return null;
+        }
+    }
+
+    function getBaseOrigin() {
+        return window.location.origin;
+    }
+
+    function buildShortUrl(shortCode) {
+        return `${getBaseOrigin()}${API_BASE.replace('/api/v1', '')}/${shortCode}`;
+    }
+
+    function getRecentLinks() {
+        try {
+            return JSON.parse(localStorage.getItem('linkforge_recent_links') || '[]');
+        } catch {
+            return [];
+        }
+    }
+
+    function setRecentLinks(items) {
+        localStorage.setItem('linkforge_recent_links', JSON.stringify(items.slice(0, 12)));
+        renderRecentTable();
+    }
+
+    function addRecentLink(item) {
+        const list = getRecentLinks();
+        list.unshift(item);
+        setRecentLinks(list);
+    }
+
+    function renderRecentTable() {
+        const rows = getRecentLinks();
+        if (!rows.length) {
+            elements.recentTable.innerHTML = '<tr><td colspan="5" style="color:var(--muted);">No links created yet.</td></tr>';
+            return;
+        }
+
+        elements.recentTable.innerHTML = rows.map((row, idx) => `
+        <tr>
+          <td>
+            <div style="font-weight:700;">${row.shortUrl}</div>
+            <small>${row.shortCode}</small>
+          </td>
+          <td style="word-break:break-word; max-width:340px;">${row.originalUrl}</td>
+          <td>${new Date(row.createdAt).toLocaleString()}</td>
+          <td><span class="badge ${row.isActive ? '' : 'off'}">${row.isActive ? 'Active' : 'Inactive'}</span></td>
+          <td>
+            <div class="controls">
+              <button class="btn secondary" type="button" data-copy-row="${idx}">Copy</button>
+              <button class="btn secondary" type="button" data-open-row="${idx}">Open</button>
+              <button class="btn secondary" type="button" data-analytics-row="${idx}">Analytics</button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+
+        document.querySelectorAll('[data-copy-row]').forEach(btn => {
+            btn.addEventListener('click', () => copyText(rows[Number(btn.dataset.copyRow)].shortUrl));
+        });
+        document.querySelectorAll('[data-open-row]').forEach(btn => {
+            btn.addEventListener('click', () => window.open(rows[Number(btn.dataset.openRow)].shortUrl, '_blank', 'noopener'));
+        });
+        document.querySelectorAll('[data-analytics-row]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const item = rows[Number(btn.dataset.analyticsRow)];
+                elements.shortCode.value = item.shortCode;
+                loadAnalytics(item.shortCode);
+            });
+        });
+    }
+
+    async function copyText(text) {
+        try {
+            await navigator.clipboard.writeText(text);
+            state.copyCount += 1;
+            elements.statCopied.textContent = state.copyCount;
+            toast('Copied to clipboard', 'success');
+        } catch {
+            toast('Clipboard copy failed', 'error');
+        }
+    }
+
+    function setLoading(button, isLoading, label = 'Shorten URL') {
+        button.disabled = isLoading;
+        button.textContent = isLoading ? 'Creating...' : label;
+    }
+
+    function shortCodeFromShortUrl(shortUrl) {
+        try {
+            const u = new URL(shortUrl);
+            return u.pathname.split('/').filter(Boolean).pop();
+        } catch {
+            return '';
+        }
+    }
+
+    async function shortenUrl(originalUrl) {
+        const res = await fetch(`${API_BASE}/urls`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ originalUrl })
+        });
+
+        if (!res.ok) {
+            const text = await res.text();
+            throw new Error(text || 'Could not shorten URL');
+        }
+
+        return res.json();
+    }
+
+    async function loadAnalytics(shortCode) {
+        if (!shortCode) {
+            toast('Enter a short code first', 'error');
+            return;
+        }
+
+        state.lookupCount += 1;
+        elements.statLookup.textContent = state.lookupCount;
+        toast('Loading analytics...', 'info');
+
+        let payload = null;
+        let lastError = null;
+
+        for (const buildUrl of ANALYTICS_ENDPOINTS) {
+            try {
+                const response = await fetch(buildUrl(shortCode));
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                payload = await response.json();
+                break;
+            } catch (err) {
+                lastError = err;
+            }
+        }
+
+        if (!payload) {
+            toast('Analytics endpoint not reachable yet', 'error');
+            console.error('Analytics load failed:', lastError);
+            return;
+        }
+
+        renderAnalytics(payload);
+        toast('Analytics loaded', 'success');
+    }
+
+    function renderAnalytics(data) {
+        const totalClicks = data.totalClicks ?? data.clickCount ?? 0;
+        const rank = data.rank ?? data.urlRank ?? '-';
+        const recentClicks = data.recentClicks ?? [];
+
+        elements.metricClicks.textContent = totalClicks;
+        elements.metricRank.textContent = rank ?? '-';
+        elements.metricRecent.textContent = recentClicks.length;
+        elements.metricActive.textContent = 'Loaded';
+
+        const clickLabels = recentClicks.length
+            ? recentClicks.map((item, idx) => {
+                const when = item.clickedAt || item.createdAt || item.time || item.timestamp;
+                return when ? new Date(when).toLocaleString() : `Click ${idx + 1}`;
+            }).reverse()
+            : ['No data'];
+
+        const clickValues = recentClicks.length
+            ? recentClicks.map((_, idx) => idx + 1).reverse()
+            : [0];
+
+        const trafficCounts = computeTrafficBreakdown(recentClicks);
+
+        destroyCharts();
+        const clicksCtx = document.getElementById('clicksChart');
+        const trafficCtx = document.getElementById('trafficChart');
+
+        state.charts.clicks = new Chart(clicksCtx, {
+            type: 'line',
+            data: {
+                labels: clickLabels,
+                datasets: [{
+                    label: 'Clicks',
+                    data: clickValues,
+                    tension: 0.35,
+                    fill: true,
+                    borderWidth: 2,
+                    pointRadius: 3,
+                    pointHoverRadius: 5,
+                }]
+            },
+            options: chartOptions('Clicks over time')
+        });
+
+        state.charts.traffic = new Chart(trafficCtx, {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(trafficCounts),
+                datasets: [{
+                    data: Object.values(trafficCounts),
+                    borderWidth: 0,
+                    hoverOffset: 8,
+                }]
+            },
+            options: {
+                ...chartOptions('Traffic breakdown', false),
+                cutout: '62%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            color: '#dbe5f5',
+                            padding: 16,
+                            usePointStyle: true,
+                            pointStyle: 'circle'
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function computeTrafficBreakdown(recentClicks) {
+        const agents = recentClicks
+            .map(x => String(x.userAgent || x.user_agent || 'Unknown'))
+            .filter(Boolean);
+
+        const total = agents.length || 1;
+        const desktop = agents.filter(v => /Windows|Macintosh|Linux/.test(v)).length;
+        const mobile = agents.filter(v => /Android|iPhone|Mobile/.test(v)).length;
+        const bot = agents.filter(v => /bot|crawl|spider/i.test(v)).length;
+        const other = Math.max(total - desktop - mobile - bot, 0);
+
+        return {
+            Desktop: desktop || 0,
+            Mobile: mobile || 0,
+            Bot: bot || 0,
+            Other: other || 0,
+        };
+    }
+
+    function chartOptions(title, showLegend = false) {
+        return {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: showLegend,
+                    labels: { color: '#dbe5f5' }
+                },
+                title: {
+                    display: false,
+                    text: title,
+                    color: '#dbe5f5'
+                }
+            },
+            scales: {
+                x: {
+                    ticks: { color: '#9fb0c7', maxRotation: 0, autoSkip: true },
+                    grid: { color: 'rgba(148,163,184,0.10)' }
+                },
+                y: {
+                    ticks: { color: '#9fb0c7', precision: 0 },
+                    grid: { color: 'rgba(148,163,184,0.10)' }
+                }
+            }
+        };
+    }
+
+    function destroyCharts() {
+        if (state.charts.clicks) {
+            state.charts.clicks.destroy();
+            state.charts.clicks = null;
+        }
+        if (state.charts.traffic) {
+            state.charts.traffic.destroy();
+            state.charts.traffic = null;
+        }
+    }
+
+    function resetDashboard() {
+        elements.metricClicks.textContent = '-';
+        elements.metricRank.textContent = '-';
+        elements.metricRecent.textContent = '-';
+        elements.metricActive.textContent = '-';
+        destroyCharts();
+        const clicksCtx = document.getElementById('clicksChart');
+        const trafficCtx = document.getElementById('trafficChart');
+        state.charts.clicks = new Chart(clicksCtx, {
+            type: 'line',
+            data: { labels: ['No data'], datasets: [{ label: 'Clicks', data: [0], tension: .35 }] },
+            options: chartOptions('Clicks over time')
+        });
+        state.charts.traffic = new Chart(trafficCtx, {
+            type: 'doughnut',
+            data: { labels: ['No data'], datasets: [{ data: [1] }] },
+            options: {
+                ...chartOptions('Traffic breakdown', false),
+                cutout: '62%',
+                plugins: { legend: { position: 'bottom', labels: { color: '#dbe5f5' } } }
+            }
+        });
+    }
+
+    async function handleShortenSubmit(event) {
+        event.preventDefault();
+        const longUrl = elements.longUrl.value.trim();
+        const valid = safeUrl(longUrl);
+        if (!valid) {
+            toast('Enter a valid URL with http or https', 'error');
+            return;
+        }
+
+        setLoading(elements.btnShorten, true);
+        try {
+            const payload = await shortenUrl(valid);
+            const shortUrl = payload.shortUrl || buildShortUrl(payload.shortCode);
+            const shortCode = payload.shortCode || shortCodeFromShortUrl(shortUrl);
+
+            state.latestCode = shortCode;
+            state.latestShortUrl = shortUrl;
+            state.createdCount += 1;
+            elements.statShortened.textContent = state.createdCount;
+
+            elements.resultShortUrl.textContent = shortUrl;
+            elements.shortLinkBox.textContent = shortUrl;
+            elements.resultMeta.textContent = `Original: ${payload.originalUrl || valid} • Created: ${payload.createdAt ? new Date(payload.createdAt).toLocaleString() : new Date().toLocaleString()}`;
+            elements.resultBox.classList.add('show');
+
+            addRecentLink({
+                shortCode,
+                shortUrl,
+                originalUrl: payload.originalUrl || valid,
+                createdAt: payload.createdAt || new Date().toISOString(),
+                isActive: payload.isActive ?? true,
+            });
+
+            toast('Short URL created', 'success');
+            elements.longUrl.value = '';
+            elements.shortCode.value = shortCode;
+            await loadAnalytics(shortCode);
+            elements.resultBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } catch (err) {
+            console.error(err);
+            toast(err.message || 'Could not shorten URL', 'error');
+        } finally {
+            setLoading(elements.btnShorten, false);
+        }
+    }
+
+    elements.shortenForm.addEventListener('submit', handleShortenSubmit);
+    elements.copyBtn.addEventListener('click', () => copyText(elements.shortLinkBox.textContent));
+    elements.openBtn.addEventListener('click', () => {
+        const url = elements.shortLinkBox.textContent.trim();
+        if (url && url !== '-') window.open(url, '_blank', 'noopener');
+    });
+    elements.btnAnalytics.addEventListener('click', () => loadAnalytics(elements.shortCode.value.trim()));
+    elements.btnUseLatest.addEventListener('click', () => {
+        if (!state.latestCode) return toast('Create a link first', 'error');
+        elements.shortCode.value = state.latestCode;
+        loadAnalytics(state.latestCode);
+    });
+    elements.btnResetAnalytics.addEventListener('click', () => {
+        resetDashboard();
+        toast('Charts reset', 'info');
+    });
+    elements.btnClearRecent.addEventListener('click', () => {
+        localStorage.removeItem('linkforge_recent_links');
+        renderRecentTable();
+        toast('Local history cleared', 'info');
+    });
+    elements.btnDemoFill.addEventListener('click', () => {
+        elements.longUrl.value = 'https://spring.io/projects/spring-boot';
+        elements.longUrl.focus();
+    });
+    document.querySelectorAll('[data-fill]').forEach(chip => {
+        chip.addEventListener('click', () => {
+            elements.longUrl.value = chip.dataset.fill;
+            elements.longUrl.focus();
+        });
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+            e.preventDefault();
+            elements.longUrl.focus();
+        }
+    });
+
+    renderRecentTable();
+    resetDashboard();
+</script>
+</body>
+</html>

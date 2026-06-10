@@ -6,7 +6,7 @@ import java.util.List;
 
 public interface UrlClickRepository extends JpaRepository<UrlClick, Long> {
 
-    Long coundByShortCode(String shorCode);
+    Long countByShortCode(String shorCode);
 
     List<UrlClick> findTop10ByShortCode(String shorCode);
 }
