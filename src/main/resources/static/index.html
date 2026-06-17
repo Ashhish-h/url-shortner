@@ -592,7 +592,7 @@
          GET    /url/api/v1/analytics/:code -> { totalClicks, rank, recentClicks:[{clickedAt,ip,referrer,userAgent}], active }
          DELETE /url/api/v1/url/:code/deactivate -> { active:false }
        ============================================================ */
-    const API_BASE = "/url/api/v1"; // same-origin; change if backend is elsewhere
+    const API_BASE = "/api/v1"; // same-origin; change if backend is elsewhere
 
     /* ---------- tiny helpers ---------- */
     const $ = (id) => document.getElementById(id);
@@ -680,7 +680,7 @@
             console.error(err);
             /* graceful demo fallback so UI is testable without backend */
             const code = Math.random().toString(36).slice(2,8);
-            const shortUrl = `${location.origin}${API_BASE}/urls/${code}`;
+            const shortUrl = `${location.origin}${API_BASE}/url/${code}`;
             const entry = { code, shortUrl, originalUrl:url, createdAt:Date.now(), active:true, demo:true };
             state.links.unshift(entry); saveLocal();
             state.latestCode = code;
